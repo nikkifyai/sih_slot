@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parking System</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .live-view {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+        .slot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .parking-slot {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .slot-available {
+            background-color: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+        .slot-occupied {
+            background-color: #f8d7da;
+            border: 2px solid #f5c6cb;
+            color: #721c24;
+        }
+        .slot-info {
+            font-size: 0.9em;
+            margin-top: 8px;
+        }
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #28a745;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            background-color: #e9ecef;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #495057;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button { 
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.secondary {
+            background-color: #666;
+        }
+        #output { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
+        .section {
+            border: 1px solid #eee;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Smart Parking System</h2>
+
+        <!-- Live View Section -->
+        <div class="live-view">
+            <h3><span class="live-indicator"></span> Live Parking Status</h3>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div>Available Slots</div>
+                    <div class="stat-value" id="availableCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Occupied Slots</div>
+                    <div class="stat-value" id="occupiedCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>Total Slots</div>
+                    <div class="stat-value" id="totalCount">0</div>
+                </div>
+            </div>
+            <div class="slot-grid" id="liveSlots">
+                <!-- Slots will be displayed here -->
+            </div>
+        </div>
+        
+        <!-- User Information Section -->
+        <div class="section" id="userSection">
+            <h3>1. Enter User Information</h3>
+            <div class="form-group">
+                <label for="userName">Name *</label>
+                <input type="text" id="userName" placeholder="Enter full name">
+            </div>
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number *</label>
+                <input type="tel" id="phoneNumber" placeholder="Enter phone number">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Enter email (optional)">
+            </div>
+            <div class="form-group">
+                <label for="vehicleNumber">Vehicle Number *</label>
+                <input type="text" id="vehicleNumber" placeholder="Enter vehicle number">
+            </div>
+            <div class="form-group">
+                <label for="vehicleType">Vehicle Type</label>
+                <select id="vehicleType">
+                    <option value="car">Car</option>
+                    <option value="bike">Bike</option>
+                    <option value="truck">Truck</option>
+                </select>
+            </div>
+            <button onclick="saveUserInfo()">Save User Info & Check Available Slots</button>
+        </div>
+
+        <!-- Slot Booking Section -->
+        <div class="section hidden" id="bookingSection">
+            <h3>2. Book Available Slot</h3>
+            <div id="availableSlots" class="form-group">
+                <!-- Available slots will be listed here -->
+            </div>
+            <div class="form-group">
+                <label for="slotNumber">Select Slot Number *</label>
+                <input type="number" id="slotNumber" min="1" placeholder="Enter slot number">
+            </div>
+            <div class="form-group">
+                <label for="duration">Parking Duration (hours) *</label>
+                <input type="number" id="duration" min="1" value="1">
+            </div>
+            <button onclick="bookSlot()">Book Slot</button>
+            <button onclick="resetForm()" class="secondary">Start Over</button>
+        </div>
+
+        <div id="status" style="display: none;" class="status"></div>
+        <div id="output"><em>Results will appear here...</em></div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:3000';
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+        let userData = null;
+        let updateInterval;
+
+        // Function to update the live view
+        async function updateLiveView() {
+            try {
+                const response = await fetch(`${baseUrl}/api/parking`);
+                if (!response.ok) throw new Error('Failed to fetch slots');
+                
+                const slots = await response.json();
+                const slotsGrid = document.getElementById('liveSlots');
+                const availableCount = slots.filter(slot => !slot.isOccupied).length;
+                const occupiedCount = slots.filter(slot => slot.isOccupied).length;
+                
+                // Update statistics
+                document.getElementById('availableCount').textContent = availableCount;
+                document.getElementById('occupiedCount').textContent = occupiedCount;
+                document.getElementById('totalCount').textContent = slots.length;
+
+                // Update slot grid
+                slotsGrid.innerHTML = slots.map(slot => `
+                    <div class="parking-slot ${slot.isOccupied ? 'slot-occupied' : 'slot-available'}">
+                        <strong>Slot ${slot.slotNumber}</strong>
+                        <div class="slot-info">
+                            ${slot.isOccupied ? `
+                                🚗 Occupied<br>
+                                Vehicle: ${slot.vehicleNumber}<br>
+                                Time left: ${calculateTimeLeft(slot.bookedAt, slot.expectedDuration)}
+                            ` : '✅ Available'}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error updating live view:', error);
+            }
+        }
+
+        // Calculate time left for parking
+        function calculateTimeLeft(bookedAt, duration) {
+            if (!bookedAt || !duration) return 'N/A';
+            
+            const bookingTime = new Date(bookedAt);
+            const endTime = new Date(bookingTime.getTime() + duration * 60 * 60 * 1000);
+            const now = new Date();
+            
+            if (now > endTime) return 'Expired';
+            
+            const hoursLeft = Math.floor((endTime - now) / (1000 * 60 * 60));
+            const minutesLeft = Math.floor(((endTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+            
+            return `${hoursLeft}h ${minutesLeft}m`;
+        }
+
+        // Start live updates when page loads
+        updateLiveView();
+        updateInterval = setInterval(updateLiveView, 5000); // Update every 5 seconds
+
+        // Show status messages
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status ' + (isError ? 'error' : 'success');
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            setTimeout(() => statusDiv.style.display = 'none', 3000);
+        }
+
+        // Display results
+        function showResult(result) {
+            output.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+        }
+
+        // Validate user input
+        function validateUserInfo() {
+            const name = document.getElementById('userName').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            const vehicleNumber = document.getElementById('vehicleNumber').value.trim();
+
+            if (!name) {
+                showStatus('Please enter your name!', true);
+                return false;
+            }
+            if (!phoneNumber) {
+                showStatus('Please enter your phone number!', true);
+                return false;
+            }
+            if (!vehicleNumber) {
+                showStatus('Please enter your vehicle number!', true);
+                return false;
+            }
+            return true;
+        }
+
+        // Save user information and proceed to slot booking
+        async function saveUserInfo() {
+            try {
+                if (!validateUserInfo()) {
+                    return;
+                }
+
+                userData = {
+                    name: document.getElementById('userName').value.trim(),
+                    phoneNumber: document.getElementById('phoneNumber').value.trim(),
+                    email: document.getElementById('email').value.trim() || null,
+                    vehicleNumber: document.getElementById('vehicleNumber').value.trim(),
+                    vehicleType: document.getElementById('vehicleType').value
+                };
+
+                showResult({ message: 'User information saved', userData: userData });
+                showStatus('User information saved successfully!');
+
+                // Show booking section and disable user section
+                document.getElementById('userSection').style.opacity = '0.5';
+                document.getElementById('userSection').style.pointerEvents = 'none';
+                document.getElementById('bookingSection').classList.remove('hidden');
+
+                // Get and show available slots
+                await getSlots();
+            } catch (error) {
+                console.error('Error in saveUserInfo:', error);
+                showStatus('Error saving user information!', true);
+            }
+        }
+
+        // Get all available parking slots
+        async function getSlots() {
+            try {
+                const response = await fetch(`${baseUrl}/api/parking`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch slots');
+                }
+                
+                const data = await response.json();
+                const availableSlots = data.filter(slot => !slot.isOccupied);
+                
+                const slotsDiv = document.getElementById('availableSlots');
+                if (availableSlots.length === 0) {
+                    slotsDiv.innerHTML = `
+                        <p style="color: red;">No slots available! Create a new slot?</p>
+                        <button onclick="createSlot()">Create New Slot</button>
+                    `;
+                } else {
+                    slotsDiv.innerHTML = `
+                        <p><strong>Available slots:</strong> ${availableSlots.map(slot => slot.slotNumber).join(', ')}</p>
+                    `;
+                }
+                showResult({ available_slots: availableSlots });
+            } catch (error) {
+                console.error('Error in getSlots:', error);
+                showStatus('Failed to get available slots!', true);
+            }
+        }
+
+        // Create a new parking slot
+        async function createSlot() {
+            try {
+                const response = await fetch(`${baseUrl}/api/parking`);
+                const slots = await response.json();
+                const maxSlot = slots.reduce((max, slot) => Math.max(max, slot.slotNumber), 0);
+                const newSlotNumber = maxSlot + 1;
+
+                const createResponse = await fetch(`${baseUrl}/api/parking`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        slotNumber: newSlotNumber
+                    })
+                });
+
+                if (!createResponse.ok) {
+                    throw new Error('Failed to create slot');
+                }
+
+                const data = await createResponse.json();
+                showResult(data);
+                showStatus('New slot created successfully!');
+                await getSlots();
+            } catch (error) {
+                console.error('Error in createSlot:', error);
+                showStatus('Failed to create slot!', true);
+            }
+        }
+
+        // Book a parking slot
+        async function bookSlot() {
+            try {
+                const slotNumber = document.getElementById('slotNumber').value;
+                const duration = document.getElementById('duration').value;
+
+                if (!slotNumber || !duration) {
+                    showStatus('Please select a slot number and duration!', true);
+                    return;
+                }
+
+                const response = await fetch(`${baseUrl}/api/parking/book`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        slotNumber: parseInt(slotNumber),
+                        vehicleNumber: userData.vehicleNumber,
+                        userData: userData,
+                        expectedDuration: parseInt(duration)
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(data);
+                    showStatus('Slot booked successfully!');
+                } else {
+                    throw new Error(data.message || 'Failed to book slot');
+                }
+            } catch (error) {
+                console.error('Error in bookSlot:', error);
+                showStatus(error.message || 'Failed to book slot!', true);
+            }
+        }
+
+        // Reset the form
+        function resetForm() {
+            document.getElementById('userName').value = '';
+            document.getElementById('phoneNumber').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('vehicleNumber').value = '';
+            document.getElementById('vehicleType').value = 'car';
+            document.getElementById('slotNumber').value = '';
+            document.getElementById('duration').value = '1';
+            
+            document.getElementById('userSection').style.opacity = '1';
+            document.getElementById('userSection').style.pointerEvents = 'auto';
+            document.getElementById('bookingSection').classList.add('hidden');
+            
+            output.innerHTML = '<em>Results will appear here...</em>';
+            userData = null;
+            
+            showStatus('Form reset successfully!');
+        }
+    </script>
+</body>
+</html>
