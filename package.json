@@ -1,0 +1,17 @@
+{
+  "name": "park_us",
+  "version": "1.0.0",
+  "description": "sih",
+  "keywords": [
+    "js",
+    "mongoose",
+    "backend"
+  ],
+  "license": "ISC",
+  "author": "nikki",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
